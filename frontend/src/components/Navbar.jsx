@@ -1,32 +1,26 @@
-export default function Navbar({ setPage, activePage }) {
+export default function Navbar({ setPage, activePage, darkMode, setDarkMode }) {
   return (
-    <nav className="bg-slate-950 text-white sticky top-0 z-50 px-8 py-4 flex justify-between items-center shadow-md border-b border-slate-900">
-      <div className="text-xl font-black tracking-wider text-indigo-400 cursor-pointer" onClick={() => setPage('home')}>
-        Descripto<span className="text-white">_ai</span>
+    <nav className="bg-[#9c8ce7] text-white flex items-center justify-between text-sm font-semibold tracking-wide py-3 px-8 w-full shadow-md">
+      <div className="text-lg font-black tracking-wider text-white cursor-pointer" onClick={() => setPage('home')}>
+        Descripto_AI
       </div>
-      
-      <div className="flex items-center space-x-8 text-sm font-semibold tracking-wide">
+
+      <div className="flex items-center space-x-6">
+        <button onClick={() => setPage('home')} className={`transition cursor-pointer ${activePage === 'home' ? 'text-indigo-900 font-bold' : 'text-white hover:text-slate-200'}`}>Home</button>
+        <button onClick={() => setPage('about')} className={`transition cursor-pointer ${activePage === 'about' ? 'text-indigo-900 font-bold' : 'text-white hover:text-slate-200'}`}>About</button>
+        <button onClick={() => setPage('dashboard')} className={`transition cursor-pointer ${activePage === 'dashboard' ? 'text-indigo-900 font-bold' : 'text-white hover:text-slate-200'}`}>DashBoard</button>
+        <button onClick={() => setPage('list')} className={`transition cursor-pointer ${activePage === 'list' ? 'text-indigo-900 font-bold' : 'text-white hover:text-slate-200'}`}>List</button>
+        
         <button 
-          onClick={() => setPage('home')} 
-          className={`transition duration-150 cursor-pointer ${activePage === 'home' ? 'text-indigo-400' : 'text-slate-300 hover:text-white'}`}
+          onClick={() => setDarkMode(!darkMode)}
+          className="transition cursor-pointer text-white hover:text-slate-200 font-semibold"
         >
-          Home
+          {darkMode ? 'Light' : 'Dark'}
         </button>
-        <button 
-          onClick={() => setPage('about')} 
-          className={`transition duration-150 cursor-pointer ${activePage === 'about' ? 'text-indigo-400' : 'text-slate-300 hover:text-white'}`}
-        >
-          About
-        </button>
-        <button 
-          onClick={() => setPage('dashboard')} 
-          className={`transition duration-150 cursor-pointer ${activePage === 'dashboard' ? 'text-indigo-400' : 'text-slate-300 hover:text-white'}`}
-        >
-          Dashboard
-        </button>
+
         <button 
           onClick={() => setPage('login')} 
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl transition duration-150 shadow-md transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          className="bg-white text-[#9c8ce7] font-bold px-5 py-1.5 rounded transition hover:bg-slate-100 cursor-pointer text-xs uppercase tracking-wider"
         >
           Login
         </button>
