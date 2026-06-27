@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Navbar from './components/navbar';
 import Hero from './components/hero';
 import Footer from './components/footer';
@@ -6,8 +6,10 @@ import { Button, Input, Modal, Toast, Loader } from './components/ui';
 
 export default function App() {
   const [page, setPage] = useState('home');
+  const [darkMode, setDarkMode] = useState(false); 
   const [modalOpen, setModalOpen] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [prodName, setProdName] = useState('');
@@ -21,67 +23,83 @@ export default function App() {
     setOutputCopy('');
     setTimeout(() => {
       setLoading(false);
-      setOutputCopy(`Professional Marketplace Description:\n\nIntroducing our premium ${prodName || 'Product'}. Expertly processed featuring high-quality ${ingredients || 'raw traits'}. Available in convenient ${weight || 'standard'} sizing. Optimized configuration metrics ensure absolute listing efficiency.`);
+      setOutputCopy(`Premium Marketplace Copywriting Asset:\n\nDiscover the standout qualities of our newly optimized ${prodName || 'Product'}. Meticulously sourced incorporating choice components like ${ingredients || 'raw traits'}. Delivered in exact ${weight || 'specified'} batch quantities with distinctive ${features || 'characteristic'} details.`);
+      setToastMessage("Action executed and logged!");
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 3000);
-    }, 1500);
+    }, 1200);
+  };
+
+  const handleCopy = () => {
+    if (!outputCopy) return;
+    navigator.clipboard.writeText(outputCopy);
+    setToastMessage("Description copied to clipboard! 📋");
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#4a4747] text-white font-sans antialiased">
+    <div className="min-h-screen flex flex-col font-sans antialiased bg-[#6355a4]">
       
-      <header className="sticky top-0 z-40 bg-[#6355a4] border-b border-[#4f428c] flex items-center justify-between px-8 py-2 shadow-md">
-        <Navbar setPage={setPage} activePage={page} />
+      <header className="sticky top-0 z-40 bg-[#6355a4] border-b border-white/10">
+        <Navbar setPage={setPage} activePage={page} darkMode={darkMode} setDarkMode={setDarkMode} />
       </header>
 
-      <main className="flex-grow">
+      <main className={`flex-grow flex flex-col justify-center transition-colors duration-300 ${darkMode ? 'bg-[#000000] text-white' : 'bg-[#ffffff] text-black'}`}>
+        
         {page === 'home' && (
-          <Hero setPage={setPage} />
+          <Hero setPage={setPage} darkMode={darkMode} />
         )}
 
-        {/* Dashboard matching your purple split-pane layout wireframe */}
         {page === 'dashboard' && (
-          <div className="max-w-6xl mx-auto px-6 py-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
               
-              {/* Left Input Pane */}
-              <div className="bg-[#b3a3ebd9] text-slate-900 rounded-lg p-6 space-y-4 shadow-xl border border-[#c1b4f0]">
-                <h2 className="text-xl font-bold mb-4 border-b border-[#9e8dd4] pb-1">Product Name :</h2>
-                <div className="space-y-4">
-                  <Input placeholder="Enter product identifier..." value={prodName} onChange={(e) => setProdName(e.target.value)} />
-                  
-                  <h2 className="text-xl font-bold border-b border-[#9e8dd4] pb-1">Key Ingredients :</h2>
-                  <Input placeholder="Enter core compositions..." value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
-                  
-                  <h2 className="text-xl font-bold border-b border-[#9e8dd4] pb-1">Weight :</h2>
-                  <Input placeholder="e.g., 250g, 1kg..." value={weight} onChange={(e) => setWeight(e.target.value)} />
-                  
-                  <h2 className="text-xl font-bold border-b border-[#9e8dd4] pb-1">Features :</h2>
-                  <Input placeholder="High-altitude, organic..." value={features} onChange={(e) => setFeatures(e.target.value)} />
-                </div>
+              {/* Parameter Input Block */}
+              <div className={`rounded-2xl p-5 md:p-6 space-y-4 shadow-xl border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
+                <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Product Name :</h2>
+                <Input placeholder="Enter product identifier..." value={prodName} onChange={(e) => setProdName(e.target.value)} />
                 
-                <div className="pt-4 flex items-center space-x-4">
-                  <button 
-                    onClick={handleGenerate}
-                    className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2 rounded border border-[#4f428c] shadow transition cursor-pointer"
-                  >
+                <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Key Ingredients :</h2>
+                <Input placeholder="Enter core compositions..." value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
+                
+                <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Weight :</h2>
+                <Input placeholder="e.g., 250g, 1kg..." value={weight} onChange={(e) => setWeight(e.target.value)} />
+                
+                <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Features :</h2>
+                <Input placeholder="Unique highlights..." value={features} onChange={(e) => setFeatures(e.target.value)} />
+                
+                <div className="pt-4 flex flex-wrap gap-4 items-center">
+                  <button onClick={handleGenerate} className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2.5 rounded-xl shadow transition duration-200 transform active:scale-95 cursor-pointer text-sm">
                     Generate
                   </button>
-                  <Button variant="secondary" onClick={() => setModalOpen(true)}>View Specifications</Button>
+                  <Button variant="secondary" onClick={() => setModalOpen(true)}>Specifications</Button>
                 </div>
                 <Loader isLoading={loading} />
               </div>
 
-              {/* Right Output Pane */}
-              <div className="bg-[#b3a3ebd9] text-slate-900 rounded-lg p-6 shadow-xl border border-[#c1b4f0] min-h-[460px] flex flex-col justify-between">
+              {/* Dynamic Output Block with Copy Button */}
+              <div className={`rounded-2xl p-5 md:p-6 shadow-xl border min-h-[440px] md:min-h-[490px] flex flex-col justify-between transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
                 <div>
-                  <div className="bg-slate-200 border border-slate-300 text-center py-1.5 rounded font-bold text-sm tracking-wide shadow-sm max-w-[140px] mx-auto mb-6">
-                    Description
+                  <div className="relative flex items-center justify-center max-w-[170px] mx-auto mb-6">
+                    <div className="w-full bg-[#6355a4] text-white text-center py-1.5 rounded-lg font-bold text-xs tracking-wider uppercase shadow-sm">
+                      Description
+                    </div>
+                    {outputCopy && (
+                      <button 
+                        onClick={handleCopy}
+                        className="absolute -right-10 bg-[#6355a4] text-white hover:bg-[#524493] p-1.5 rounded-lg transition duration-200 shadow-md cursor-pointer text-xs"
+                        title="Copy text"
+                      >
+                        📋
+                      </button>
+                    )}
                   </div>
+
                   {outputCopy ? (
-                    <p className="text-sm font-semibold leading-relaxed whitespace-pre-wrap bg-white p-5 rounded border border-slate-200 text-slate-800 shadow-inner">{outputCopy}</p>
+                    <p className={`text-sm font-medium leading-relaxed whitespace-pre-wrap p-5 rounded-xl shadow-inner border font-mono ${darkMode ? 'bg-black border-zinc-800 text-zinc-300' : 'bg-white border-slate-200 text-slate-800'}`}>{outputCopy}</p>
                   ) : (
-                    <div className="bg-white rounded border border-slate-200 min-h-[300px] shadow-inner flex items-center justify-center">
+                    <div className={`rounded-xl border min-h-[280px] md:min-h-[320px] shadow-inner flex items-center justify-center border-dashed ${darkMode ? 'border-zinc-800 bg-black' : 'border-slate-300 bg-white'}`}>
                       <p className="text-sm text-slate-400 italic">Generated descriptions populate here...</p>
                     </div>
                   )}
@@ -92,48 +110,47 @@ export default function App() {
           </div>
         )}
 
-        {/* List layout matching the preview list cards */}
         {page === 'list' && (
-          <div className="max-w-4xl mx-auto px-6 py-12">
-            <h1 className="text-2xl font-black mb-8 text-center tracking-wide">List of product descriptions created</h1>
-            <div className="space-y-6">
-              <div className="bg-[#b3a3ebd9] text-slate-900 p-6 rounded-xl shadow-lg border border-[#c1b4f0]">
-                <h3 className="text-lg font-bold text-[#4f428c]">product-1</h3>
+          <div className="max-w-4xl mx-auto px-6 py-12 w-full">
+            <h1 className={`text-2xl font-black mb-8 text-center tracking-wide ${darkMode ? 'text-white' : 'text-black'}`}>List of product descriptions created</h1>
+            <div className="space-y-4">
+              <div className={`p-6 rounded-xl shadow-md border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
+                <h3 className="text-lg font-bold text-[#6355a4]">product-1</h3>
               </div>
-              <div className="bg-[#b3a3ebd9] text-slate-900 p-6 rounded-xl shadow-lg border border-[#c1b4f0]">
-                <h3 className="text-lg font-bold text-[#4f428c]">product-2</h3>
+              <div className={`p-6 rounded-xl shadow-md border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
+                <h3 className="text-lg font-bold text-[#6355a4]">product-2</h3>
               </div>
             </div>
           </div>
         )}
 
         {page === 'about' && (
-          <div className="max-w-3xl mx-auto px-6 py-20 text-center">
-            <div className="bg-[#b3a3ebd9] text-slate-900 p-8 rounded-xl shadow-xl border border-[#c1b4f0]">
-              <h1 className="text-2xl font-bold mb-4 text-[#4f428c]">About</h1>
-              <p className="text-sm font-medium leading-relaxed">
-                Descripto_ai is an advanced automated copywriting platform engineered to bridge the gap between raw product data and structured marketplace listings. By automating copy structures, users optimize efficiency and maintain listing consistency effortlessly.
+          <div className="max-w-3xl mx-auto px-6 py-20 text-center w-full">
+            <div className={`p-8 rounded-2xl shadow-xl border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
+              <h1 className="text-2xl font-bold mb-4 text-[#6355a4]">About</h1>
+              <p className={`text-sm font-medium leading-relaxed transition-colors duration-300 ${darkMode ? 'text-zinc-300' : 'text-slate-600'}`}>
+                Descripto_AI is an advanced automated copywriting workspace designed to turn complex, granular product listings into highly persuasive and indexing-optimized marketplace assets instantly.
               </p>
             </div>
           </div>
         )}
 
         {page === 'login' && (
-          <div className="max-w-md mx-auto px-6 py-20 text-center">
-            <div className="bg-[#b3a3ebd9] text-slate-900 p-8 rounded-xl shadow-xl border border-[#c1b4f0]">
-              <h1 className="text-2xl font-bold mb-6 text-[#4f428c]">Login</h1>
+          <div className="max-w-md mx-auto px-6 py-16 text-center w-full">
+            <div className={`p-8 rounded-2xl shadow-xl border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
+              <h1 className="text-2xl font-bold mb-6 text-[#6355a4]">Login</h1>
               <div className="space-y-4 text-left mb-6">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Email :</label>
+                  <label className="block text-xs font-bold uppercase mb-1 text-slate-400">Email :</label>
                   <Input type="email" placeholder="name@domain.com" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Password :</label>
+                  <label className="block text-xs font-bold uppercase mb-1 text-slate-400">Password :</label>
                   <Input type="password" placeholder="••••••••" />
                 </div>
               </div>
-              <button className="bg-white hover:bg-slate-100 text-slate-800 font-bold px-6 py-2 rounded shadow border border-slate-300 tracking-wide text-sm cursor-pointer transition">
-                Login
+              <button className={`w-full font-bold py-2.5 rounded-xl shadow border tracking-wide text-sm cursor-pointer transition duration-200 ${darkMode ? 'bg-black border-zinc-700 text-white hover:bg-zinc-800' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'}`}>
+                Sign In
               </button>
             </div>
           </div>
@@ -143,14 +160,14 @@ export default function App() {
       <Footer />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <h3 className="text-lg font-bold text-slate-900 mb-2">System Specification Summary</h3>
+        <h3 className="text-lg font-bold mb-2 text-black">System Specification Summary</h3>
         <p className="text-sm text-slate-600 mb-4">Modal validation interface verifying system overlay rules.</p>
-        <button onClick={() => setModalOpen(false)} className="bg-[#6355a4] text-white px-4 py-2 rounded text-sm font-bold cursor-pointer">
+        <button onClick={() => setModalOpen(false)} className="bg-[#6355a4] text-white px-5 py-2 rounded-xl text-sm font-bold cursor-pointer hover:bg-[#524493] transition">
           Close
         </button>
       </Modal>
 
-      <Toast message="Description layout logged successfully!" isVisible={toastVisible} />
+      <Toast message={toastMessage} isVisible={toastVisible} />
     </div>
   );
 }

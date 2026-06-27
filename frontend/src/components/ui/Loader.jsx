@@ -1,6 +1,6 @@
 /**
  * @param {Object} props
- * @param {boolean} props.isLoading
+ * @param {boolean} props.isLoading - System async execution network spinner visibility trigger flag
  */
 export default function Loader({ isLoading }) {
   if (!isLoading) return null;
