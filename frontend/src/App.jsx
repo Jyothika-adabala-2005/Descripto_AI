@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './components/navbar';
 import Hero from './components/hero';
 import Footer from './components/footer';
@@ -12,22 +12,96 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Form states for Dashboard
   const [prodName, setProdName] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [weight, setWeight] = useState('');
   const [features, setFeatures] = useState('');
   const [outputCopy, setOutputCopy] = useState('');
 
-  const handleGenerate = () => {
+  // Extracted data array loaded live from backend server
+  const [itemsList, setItemsList] = useState([]);
+
+  const API_BASE_URL = 'http://localhost:5000/api/descriptions';
+
+  // Fetch all items from the backend whenever the app mounts or switches to the list view
+  const fetchAllDescriptions = async () => {
     setLoading(true);
-    setOutputCopy('');
-    setTimeout(() => {
-      setLoading(false);
-      setOutputCopy(`Premium Marketplace Copywriting Asset:\n\nDiscover the standout qualities of our newly optimized ${prodName || 'Product'}. Meticulously sourced incorporating choice components like ${ingredients || 'raw traits'}. Delivered in exact ${weight || 'specified'} batch quantities with distinctive ${features || 'characteristic'} details.`);
-      setToastMessage("Action executed and logged!");
+    try {
+      const response = await fetch(API_BASE_URL);
+      if (!response.ok) throw new Error("Could not retrieve stored records.");
+      const data = await response.json();
+      setItemsList(data);
+    } catch (err) {
+      setToastMessage(err.message || "Network link execution failure.");
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 3000);
-    }, 1200);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (page === 'list') {
+      fetchAllDescriptions();
+    }
+  }, [page]);
+
+  // POST REQUEST: Connects frontend form submission to backend generation endpoint
+  const handleGenerate = async () => {
+    if (!prodName) {
+      setToastMessage("Product Name is absolutely required!");
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+      return;
+    }
+
+    setLoading(true);
+    setOutputCopy('');
+    
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prodName, ingredients, weight, features })
+      });
+
+      if (!response.ok) throw new Error("Server generation pipeline failed.");
+      
+      const data = await response.json();
+      setOutputCopy(data.outputCopy);
+      setToastMessage("Description compiled by server successfully!");
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    } catch (err) {
+      setToastMessage(err.message);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // DELETE REQUEST: Removes a listing from the backend in-memory array
+  const handleDeleteItem = async (id) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error("Failed to clear selected item.");
+      
+      setToastMessage("Item successfully removed from server logs!");
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+      fetchAllDescriptions(); // Refresh view
+    } catch (err) {
+      setToastMessage(err.message);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCopy = () => {
@@ -110,16 +184,30 @@ export default function App() {
           </div>
         )}
 
+        {/* List View Pane showing data items dynamically pulled from server */}
         {page === 'list' && (
           <div className="max-w-4xl mx-auto px-6 py-12 w-full">
             <h1 className={`text-2xl font-black mb-8 text-center tracking-wide ${darkMode ? 'text-white' : 'text-black'}`}>List of product descriptions created</h1>
+            <Loader isLoading={loading} />
             <div className="space-y-4">
-              <div className={`p-6 rounded-xl shadow-md border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
-                <h3 className="text-lg font-bold text-[#6355a4]">product-1</h3>
-              </div>
-              <div className={`p-6 rounded-xl shadow-md border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
-                <h3 className="text-lg font-bold text-[#6355a4]">product-2</h3>
-              </div>
+              {itemsList.length === 0 ? (
+                <p className="text-center italic text-sm text-slate-400 py-10">No records found on backend memory workspace.</p>
+              ) : (
+                itemsList.map((item) => (
+                  <div key={item.id} className={`p-6 rounded-xl shadow-md border flex items-center justify-between transition-all duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-black'}`}>
+                    <div>
+                      <h3 className="text-lg font-bold text-[#6355a4]">{item.prodName}</h3>
+                      <p className="text-xs text-slate-400 font-mono mt-1">Weight Bounds: {item.weight || 'N/A'}</p>
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
