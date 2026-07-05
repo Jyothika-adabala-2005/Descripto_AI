@@ -1,104 +1,141 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import Description from './models/Description.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from './models/User.js';
 
 dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: 'http://localhost:5173'
-}));
-
+app.use(cors());
 app.use(express.json());
 
-let descriptions = [
-  { id: 1, prodName: "Organic Coffee Bean", ingredients: "Arabica", weight: "500g", features: "Dark Roast", outputCopy: "Premium Marketplace Copywriting Asset:\n\nDiscover the standout qualities of our Organic Coffee Bean." },
-  { id: 2, prodName: "Wireless Mouse", ingredients: "Plastic, Electronics", weight: "150g", features: "Ergonomic, Bluetooth", outputCopy: "Premium Marketplace Copywriting Asset:\n\nDiscover the standout qualities of our Wireless Mouse." }
-];
+// Establish Cloud Database Connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("Connected securely to MongoDB Atlas."))
+  .catch(err => console.error("Database connection failure:", err));
 
-app.get('/api/descriptions', (req, res) => {
-  res.status(200).json(descriptions);
-});
-
-app.get('/api/descriptions/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const found = descriptions.find(item => item.id === id);
-  if (!found) {
-    return res.status(404).json({ error: "Item not found with that specific identifier." });
+// 1. GET ALL ITEMS
+app.get('/api/descriptions', async (req, res) => {
+  try {
+    const logs = await Description.find().sort({ createdAt: -1 });
+    res.status(200).json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  res.status(200).json(found);
 });
 
-app.post('/api/descriptions', (req, res) => {
-  const { prodName, ingredients, weight, features } = req.body;
-  
-  if (!prodName) {
-    return res.status(400).json({ error: "Validation failed: Product Name is required." });
+// 2. GET SEARCH LOGS (Must be placed ABOVE the /:id route)
+app.get('/api/descriptions/search', async (req, res) => {
+  try {
+    const query = req.query.q ? req.query.q.toLowerCase() : '';
+    const filtered = await Description.find({
+      $or: [
+        { prodName: { $regex: query, $options: 'i' } },
+        { features: { $regex: query, $options: 'i' } }
+      ]
+    });
+    res.status(200).json(filtered);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  const generatedText = `Premium Marketplace Copywriting Asset:\n\nDiscover the standout qualities of our newly optimized ${prodName}. Meticulously sourced incorporating choice components like ${ingredients || 'premium traits'}. Delivered in exact ${weight || 'specified'} batch quantities with distinctive ${features || 'characteristic'} details.`;
-
-  const newDescription = {
-    id: descriptions.length ? descriptions[descriptions.length - 1].id + 1 : 1,
-    prodName,
-    ingredients,
-    weight,
-    features,
-    outputCopy: generatedText
-  };
-
-  descriptions.push(newDescription);
-  res.status(201).json(newDescription);
 });
 
-app.put('/api/descriptions/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = descriptions.findIndex(item => item.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ error: "Cannot update. Description not found." });
+// 3. GET SINGLE ITEM BY ID
+app.get('/api/descriptions/:id', async (req, res) => {
+  try {
+    const log = await Description.findById(req.params.id);
+    if (!log) return res.status(404).json({ error: "Record not found." });
+    res.status(200).json(log);
+  } catch (err) {
+    res.status(500).json({ error: "Invalid ID format." });
   }
-
-  const { prodName, ingredients, weight, features } = req.body;
-  
-  if (prodName) descriptions[index].prodName = prodName;
-  if (ingredients) descriptions[index].ingredients = ingredients;
-  if (weight) descriptions[index].weight = weight;
-  if (features) descriptions[index].features = features;
-  
-  descriptions[index].outputCopy = `Premium Marketplace Copywriting Asset:\n\nDiscover the standout qualities of our newly optimized ${descriptions[index].prodName}. Meticulously sourced incorporating choice components like ${descriptions[index].ingredients || 'premium traits'}. Delivered in exact ${descriptions[index].weight || 'specified'} batch quantities with distinctive ${descriptions[index].features || 'characteristic'} details.`;
-
-  res.status(200).json(descriptions[index]);
 });
 
-app.delete('/api/descriptions/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = descriptions.findIndex(item => item.id === id);
+// 4. CREATE NEW ITEM (POST)
+app.post('/api/descriptions', async (req, res) => {
+  try {
+    const { prodName, ingredients, weight, features } = req.body;
+    if (!prodName) return res.status(400).json({ error: "Validation failed: Product Name is required." });
 
-  if (index === -1) {
-    return res.status(404).json({ error: "Cannot delete. Description not found." });
+    const outputCopy = `Premium Marketplace Copywriting Asset:\nDiscover the standout qualities of our newly optimized ${prodName}. Meticulously sourced incorporating choice components like ${ingredients || 'natural elements'}. Delivered in exact ${weight || 'standard'} batch quantities with distinctive ${features || 'premium'} details.`;
+
+    const newLog = new Description({ prodName, ingredients, weight, features, outputCopy });
+    await newLog.save();
+    res.status(201).json(newLog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  descriptions.splice(index, 1);
-  res.status(204).send();
+});
+// 5. UPDATE ITEM (PUT)
+app.put('/api/descriptions/:id', async (req, res) => {
+  try {
+    const updatedLog = await Description.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedLog) return res.status(404).json({ error: "Record not found." });
+    res.status(200).json(updatedLog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/descriptions/search', (req, res) => {
-  const query = req.query.q ? req.query.q.toLowerCase() : '';
-  const filtered = descriptions.filter(item => 
-    item.prodName.toLowerCase().includes(query) || 
-    (item.features && item.features.toLowerCase().includes(query))
-  );
-  res.status(200).json(filtered);
+// 6. DELETE ITEM
+app.delete('/api/descriptions/:id', async (req, res) => {
+  try {
+    const deletedLog = await Description.findByIdAndDelete(req.params.id);
+    if (!deletedLog) return res.status(404).json({ error: "Record not found." });
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// ==========================================
+// AUTHENTICATION: SIGNUP ENDPOINT
+// ==========================================
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Email and password are required." });
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ error: "An account with this email already exists." });
+
+    // Hash the user's password securely
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({ email, password: hashedPassword });
+    await newUser.save();
+
+    // Sign a secure JWT token
+    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.status(201).json({ token, email: newUser.email });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Internal server error occurred inside engine room." });
+// ==========================================
+// AUTHENTICATION: LOGIN ENDPOINT
+// ==========================================
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Email and password are required." });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: "Invalid email credentials." });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: "Incorrect password credentials." });
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.status(200).json({ token, email: user.email });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend engine operational on port http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Backend server operational on port http://localhost:${PORT}`));
