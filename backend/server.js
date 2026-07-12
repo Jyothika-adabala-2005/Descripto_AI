@@ -6,20 +6,50 @@ import Description from './models/Description.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from './models/User.js';
+import { body, validationResult } from 'express-validator';
+import rateLimit from 'express-rate-limit';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 dotenv.config();
 const app = express();
-
+app.use(passport.initialize());
 app.use(cors());
 app.use(express.json());
 
-// Establish Cloud Database Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected securely to MongoDB Atlas."))
   .catch(err => console.error("Database connection failure:", err));
 
-// 1. GET ALL ITEMS
-app.get('/api/descriptions', async (req, res) => {
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many attempts from this IP. Please try again after 15 minutes." },
+  statusCode: 429
+});
+
+const validateAuthFields = [
+  body('email').isEmail().withMessage('Provide a valid email layout address.').normalizeEmail(),
+  body('password').isLength({ min: 6 }).withMessage('Password string must be at least 6 characters.')
+];
+
+const requireAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: "Access Denied: No authentication token provided." });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = verified;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Access Denied: Invalid or expired authentication token." });
+  }
+};
+
+app.get('/api/descriptions', requireAuth, async (req, res) => {
   try {
     const logs = await Description.find().sort({ createdAt: -1 });
     res.status(200).json(logs);
@@ -27,9 +57,36 @@ app.get('/api/descriptions', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID || 'DUMMY_CLIENT_ID',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'DUMMY_CLIENT_SECRET',
+    callbackURL: "http://localhost:5000/api/auth/google/callback"
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      const email = profile.emails[0].value;
+      let user = await User.findOne({ email });
+      
+      if (!user) {
+        user = new User({ email, password: 'OAUTH_EXTERNAL_ACCOUNT_VALIDATION_STRING' });
+        await user.save();
+      }
+      return done(null, user);
+    } catch (err) {
+      return done(err, null);
+    }
+  }
+));
 
-// 2. GET SEARCH LOGS (Must be placed ABOVE the /:id route)
-app.get('/api/descriptions/search', async (req, res) => {
+
+app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/api/auth/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
+  const token = jwt.sign({ userId: req.user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?token=${token}`);
+});
+
+app.get('/api/descriptions/search', requireAuth, async (req, res) => {
   try {
     const query = req.query.q ? req.query.q.toLowerCase() : '';
     const filtered = await Description.find({
@@ -44,8 +101,7 @@ app.get('/api/descriptions/search', async (req, res) => {
   }
 });
 
-// 3. GET SINGLE ITEM BY ID
-app.get('/api/descriptions/:id', async (req, res) => {
+app.get('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
     const log = await Description.findById(req.params.id);
     if (!log) return res.status(404).json({ error: "Record not found." });
@@ -55,8 +111,7 @@ app.get('/api/descriptions/:id', async (req, res) => {
   }
 });
 
-// 4. CREATE NEW ITEM (POST)
-app.post('/api/descriptions', async (req, res) => {
+app.post('/api/descriptions', requireAuth, async (req, res) => {
   try {
     const { prodName, ingredients, weight, features } = req.body;
     if (!prodName) return res.status(400).json({ error: "Validation failed: Product Name is required." });
@@ -70,8 +125,8 @@ app.post('/api/descriptions', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// 5. UPDATE ITEM (PUT)
-app.put('/api/descriptions/:id', async (req, res) => {
+
+app.put('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
     const updatedLog = await Description.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updatedLog) return res.status(404).json({ error: "Record not found." });
@@ -81,8 +136,7 @@ app.put('/api/descriptions/:id', async (req, res) => {
   }
 });
 
-// 6. DELETE ITEM
-app.delete('/api/descriptions/:id', async (req, res) => {
+app.delete('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
     const deletedLog = await Description.findByIdAndDelete(req.params.id);
     if (!deletedLog) return res.status(404).json({ error: "Record not found." });
@@ -91,46 +145,44 @@ app.delete('/api/descriptions/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// ==========================================
-// AUTHENTICATION: SIGNUP ENDPOINT
-// ==========================================
-app.post('/api/auth/signup', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "Email and password are required." });
 
+app.post('/api/auth/signup', authLimiter, validateAuthFields, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: errors.array()[0].msg });
+    }
+
+    const { email, password } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ error: "An account with this email already exists." });
 
-    // Hash the user's password securely
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const newUser = new User({ email, password: hashedPassword });
     await newUser.save();
 
-    // Sign a secure JWT token
-    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, email: newUser.email });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ==========================================
-// AUTHENTICATION: LOGIN ENDPOINT
-// ==========================================
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, validateAuthFields, async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "Email and password are required." });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: errors.array()[0].msg });
+    }
 
+    const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ error: "Invalid email credentials." });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "Incorrect password credentials." });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(200).json({ token, email: user.email });
   } catch (err) {
     res.status(500).json({ error: err.message });

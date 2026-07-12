@@ -1,4 +1,7 @@
-export default function Navbar({ setPage, activePage, darkMode, setDarkMode }) {
+import React from 'react';
+
+// MAKE SURE ALL SIX PROPS ARE DESTRUCTURED HERE INSIDE THE BRACKETS
+export default function Navbar({ setPage, activePage, darkMode, setDarkMode, userToken, handleLogout }) {
   return (
     <nav className="bg-[#6355a4] text-white flex flex-col sm:flex-row items-center justify-between text-sm font-semibold tracking-wide py-4 px-6 md:px-8 w-full gap-4 sm:gap-0 select-none">
       <div className="text-xl font-black tracking-wider text-white cursor-pointer" onClick={() => setPage('home')}>
@@ -13,18 +16,28 @@ export default function Navbar({ setPage, activePage, darkMode, setDarkMode }) {
         
         <button 
           onClick={() => setDarkMode(!darkMode)}
-          className="transition duration-200 cursor-pointer text-xl hover:scale-110 active:scale-95 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20"
+          className="transition duration-200 cursor-pointer text-xl hover:scale-110 active:scale-95 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 mr-2"
           title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
           {darkMode ? '☀️' : '🌙'}
         </button>
 
-        <button 
-          onClick={() => setPage('login')} 
-          className="bg-white text-[#6355a4] font-bold px-5 py-2 rounded-xl transition duration-200 hover:bg-indigo-50 shadow-sm cursor-pointer text-xs uppercase tracking-wider"
-        >
-          Login
-        </button>
+        {/* THIS CONDITIONAL BLOCK CONTROLS THE ALTERNATION */}
+        {userToken ? (
+          <button 
+            onClick={handleLogout} 
+            className="bg-rose-600 text-white font-bold px-5 py-2 rounded-xl transition duration-200 hover:bg-rose-500 shadow-sm cursor-pointer text-xs uppercase tracking-wider"
+          >
+            Logout
+          </button>
+        ) : (
+          <button 
+            onClick={() => setPage('login')} 
+            className="bg-white text-[#6355a4] font-bold px-5 py-2 rounded-xl transition duration-200 hover:bg-indigo-50 shadow-sm cursor-pointer text-xs uppercase tracking-wider"
+          >
+            Login
+          </button>
+        )}
       </div>
     </nav>
   );

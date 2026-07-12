@@ -12,32 +12,47 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Auth States
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [userToken, setUserToken] = useState(localStorage.getItem('token') || '');
 
-  // Form states for Dashboard
   const [prodName, setProdName] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [weight, setWeight] = useState('');
   const [features, setFeatures] = useState('');
   const [outputCopy, setOutputCopy] = useState('');
 
-  // Extracted data array loaded live from backend server
   const [itemsList, setItemsList] = useState([]);
 
   const API_BASE_URL = 'http://localhost:5000/api/descriptions';
   const AUTH_BASE_URL = 'http://localhost:5000/api/auth';
 
-  // Fetch all items from the backend whenever the app mounts or switches to the list view
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('token');
+
+    if (tokenFromUrl) {
+      localStorage.setItem('token', tokenFromUrl);
+      setUserToken(tokenFromUrl);
+      setPage('dashboard');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setToastMessage("Signed in seamlessly via Google!");
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    }
+  }, []);
+
   const fetchAllDescriptions = async () => {
-    // Block fetching records if user is unauthenticated
     if (!userToken) return;
 
     setLoading(true);
     try {
-      const response = await fetch(API_BASE_URL);
+      const response = await fetch(API_BASE_URL, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${userToken}`
+        }
+      });
       if (!response.ok) throw new Error("Could not retrieve stored records.");
       const data = await response.json();
       setItemsList(data);
@@ -52,11 +67,16 @@ export default function App() {
 
   useEffect(() => {
     if (page === 'list') {
-      fetchAllDescriptions();
+      if (!userToken) {
+        setPage('login');
+      } else {
+        fetchAllDescriptions();
+      }
+    } else if (page === 'dashboard' && !userToken) {
+      setPage('login');
     }
   }, [page, userToken]);
 
-  // AUTHENTICATION: handle registration API pipeline
   const handleSignupSubmit = async () => {
     if (!authEmail || !authPassword) {
       setToastMessage("All fields are required for sign up!");
@@ -91,7 +111,6 @@ export default function App() {
     }
   };
 
-  // AUTHENTICATION: handle sign in credentials pipeline
   const handleLoginSubmit = async () => {
     if (!authEmail || !authPassword) {
       setToastMessage("Please fill in all email credentials!");
@@ -126,9 +145,17 @@ export default function App() {
     }
   };
 
-  // POST REQUEST: Connects frontend form submission to backend generation endpoint
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUserToken('');
+    setItemsList([]);
+    setPage('home');
+    setToastMessage("Logged out successfully.");
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+  };
+
   const handleGenerate = async () => {
-    // Block generations if a token doesn't exist in local application state
     if (!userToken) {
       setToastMessage("Access Denied: Please login to generate descriptions!");
       setToastVisible(true);
@@ -150,7 +177,10 @@ export default function App() {
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        },
         body: JSON.stringify({ prodName, ingredients, weight, features })
       });
 
@@ -170,7 +200,6 @@ export default function App() {
     }
   };
 
-  // DELETE REQUEST: Removes a listing from the backend in-memory array
   const handleDeleteItem = async (id) => {
     if (!userToken) {
       setToastMessage("Authentication required to modify records.");
@@ -183,14 +212,17 @@ export default function App() {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${userToken}`
+        }
       });
       if (!response.ok) throw new Error("Failed to clear selected item.");
       
       setToastMessage("Item successfully removed from server logs!");
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 3000);
-      fetchAllDescriptions(); // Refresh view
+      fetchAllDescriptions();
     } catch (err) {
       setToastMessage(err.message);
       setToastVisible(true);
@@ -212,13 +244,20 @@ export default function App() {
     <div className="min-h-screen flex flex-col font-sans antialiased bg-[#6355a4]">
       
       <header className="sticky top-0 z-40 bg-[#6355a4] border-b border-white/10">
-        <Navbar setPage={setPage} activePage={page} darkMode={darkMode} setDarkMode={setDarkMode} />
+        <Navbar 
+          setPage={setPage} 
+          activePage={page} 
+          darkMode={darkMode} 
+          setDarkMode={setDarkMode} 
+          userToken={userToken} 
+          handleLogout={handleLogout} 
+        />
       </header>
 
       <main className={`flex-grow flex flex-col justify-center transition-colors duration-300 ${darkMode ? 'bg-[#000000] text-white' : 'bg-[#ffffff] text-black'}`}>
         
         {page === 'home' && (
-          <Hero setPage={() => setPage('login')} darkMode={darkMode} />
+          <Hero setPage={() => setPage(userToken ? 'dashboard' : 'login')} darkMode={darkMode} />
         )}
 
         {page === 'dashboard' && (
@@ -233,7 +272,6 @@ export default function App() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
                 
-                {/* Parameter Input Block */}
                 <div className={`rounded-2xl p-5 md:p-6 space-y-4 shadow-xl border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
                   <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Product Name :</h2>
                   <Input placeholder="Enter product identifier..." value={prodName} onChange={(e) => setProdName(e.target.value)} />
@@ -256,7 +294,6 @@ export default function App() {
                   <Loader isLoading={loading} />
                 </div>
 
-                {/* Dynamic Output Block with Copy Button */}
                 <div className={`rounded-2xl p-5 md:p-6 shadow-xl border min-h-[440px] md:min-h-[490px] flex flex-col justify-between transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
                   <div>
                     <div className="relative flex items-center justify-center max-w-[170px] mx-auto mb-6">
@@ -289,7 +326,6 @@ export default function App() {
           </div>
         )}
 
-        {/* List View Pane showing data items dynamically pulled from server */}
         {page === 'list' && (
           <div className="max-w-4xl mx-auto px-6 py-12 w-full">
             {!userToken ? (
@@ -339,7 +375,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Login Page View Pane */}
         {page === 'login' && (
           <div className="max-w-md mx-auto px-6 py-16 text-center w-full">
             <div className={`p-8 rounded-2xl shadow-xl border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
@@ -357,6 +392,12 @@ export default function App() {
               <button onClick={handleLoginSubmit} className="w-full bg-[#6355a4] hover:bg-[#524493] text-white font-bold py-2.5 rounded-xl shadow border-none tracking-wide text-sm cursor-pointer transition duration-200 transform active:scale-95">
                 Sign In
               </button>
+              <button 
+                onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'} 
+                className="w-full mt-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-2 rounded-xl text-sm transition tracking-wide cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+              >
+                🌐 Sign in with Google
+              </button>
               <p className="mt-4 text-xs text-slate-400">
                 Don't have an account?{' '}
                 <span onClick={() => { setPage('signup'); setAuthEmail(''); setAuthPassword(''); }} className="text-[#6355a4] hover:underline cursor-pointer font-bold">
@@ -367,7 +408,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Signup Page View Pane */}
         {page === 'signup' && (
           <div className="max-w-md mx-auto px-6 py-16 text-center w-full">
             <div className={`p-8 rounded-2xl shadow-xl border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
