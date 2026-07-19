@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+
+dotenv.config();
+
 import mongoose from 'mongoose';
 import Description from './models/Description.js';
 import bcrypt from 'bcryptjs';
@@ -10,12 +13,14 @@ import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { GoogleGenAI } from '@google/genai';
 
-dotenv.config();
 const app = express();
 app.use(passport.initialize());
 app.use(cors());
 app.use(express.json());
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected securely to MongoDB Atlas."))
@@ -57,6 +62,7 @@ app.get('/api/descriptions', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'DUMMY_CLIENT_ID',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'DUMMY_CLIENT_SECRET',
@@ -77,7 +83,6 @@ passport.use(new GoogleStrategy({
     }
   }
 ));
-
 
 app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
@@ -113,19 +118,33 @@ app.get('/api/descriptions/:id', requireAuth, async (req, res) => {
 
 app.post('/api/descriptions', requireAuth, async (req, res) => {
   try {
-    const { prodName, ingredients, weight, features } = req.body;
+    const { prodName, ingredients, weight, features, tone } = req.body;
     if (!prodName) return res.status(400).json({ error: "Validation failed: Product Name is required." });
 
-    const outputCopy = `Premium Marketplace Copywriting Asset:\nDiscover the standout qualities of our newly optimized ${prodName}. Meticulously sourced incorporating choice components like ${ingredients || 'natural elements'}. Delivered in exact ${weight || 'standard'} batch quantities with distinctive ${features || 'premium'} details.`;
+    // 🌟 FIXED: Switched model string to the supported 'gemini-3.5-flash' version
+    const response = await ai.interactions.create({
+      model: 'gemini-3.5-flash', 
+      input: `You are an expert e-commerce copywriter. Generate a highly persuasive, marketplace-optimized product description asset based on the following attributes:
+      - Product Name: ${prodName}
+      - Materials Used: ${ingredients || 'N/A'}
+      - Weight/Dimensions: ${weight || 'N/A'}
+      - Unique Features: ${features || 'N/A'}
+      
+      CRUCIAL INSTRUCTION: Generate the output using a strict, high-quality "${tone || 'Professional'}" marketing tone alignment.
+      Structure the output text beautifully: open with an attention-grabbing hook paragraph, followed by a clean bulleted list highlighting the key features or materials value. Keep it professional.`,
+    });
+
+    // Extracting the text output via the specification output_text string property
+    const outputCopy = response.output_text; 
 
     const newLog = new Description({ prodName, ingredients, weight, features, outputCopy });
     await newLog.save();
     res.status(201).json(newLog);
   } catch (err) {
+    console.error("❌ Gemini API Pipeline Error Details:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
 app.put('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
     const updatedLog = await Description.findByIdAndUpdate(req.params.id, req.body, { new: true });

@@ -20,11 +20,12 @@ export default function App() {
   const [ingredients, setIngredients] = useState('');
   const [weight, setWeight] = useState('');
   const [features, setFeatures] = useState('');
+  const [tone, setTone] = useState('Professional');
   const [outputCopy, setOutputCopy] = useState('');
 
   const [itemsList, setItemsList] = useState([]);
-
-  const API_BASE_URL = 'http://localhost:5000/api/descriptions';
+const API_BASE_URL = 'http://127.0.0.1:5000/api/descriptions';
+ 
   const AUTH_BASE_URL = 'http://localhost:5000/api/auth';
 
   useEffect(() => {
@@ -181,7 +182,7 @@ export default function App() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${userToken}`
         },
-        body: JSON.stringify({ prodName, ingredients, weight, features })
+        body: JSON.stringify({ prodName, ingredients, weight, features, tone })
       });
 
       if (!response.ok) throw new Error("Server generation pipeline failed.");
@@ -276,7 +277,7 @@ export default function App() {
                   <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Product Name :</h2>
                   <Input placeholder="Enter product identifier..." value={prodName} onChange={(e) => setProdName(e.target.value)} />
                   
-                  <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Key Ingredients :</h2>
+                  <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Materials Used :</h2>
                   <Input placeholder="Enter core compositions..." value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
                   
                   <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Weight :</h2>
@@ -284,6 +285,19 @@ export default function App() {
                   
                   <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Features :</h2>
                   <Input placeholder="Unique highlights..." value={features} onChange={(e) => setFeatures(e.target.value)} />
+                  
+                  <h2 className="text-lg font-bold border-b border-[#6355a4]/30 pb-1 text-[#6355a4]">Description Tone :</h2>
+                  <select 
+                    value={tone} 
+                    onChange={(e) => setTone(e.target.value)}
+                    className={`w-full p-2.5 rounded-xl border text-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#6355a4] ${darkMode ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-slate-200 text-black'}`}
+                  >
+                    <option value="Professional">💼 Professional / Premium</option>
+                    <option value="Energetic">⚡ Energetic / Bold</option>
+                    <option value="Luxury">✨ Luxury / Elegant</option>
+                    <option value="Minimalist">🌱 Clean / Minimalist</option>
+                    <option value="Humorous">💬 Witty / Casual</option>
+                  </select>
                   
                   <div className="pt-4 flex flex-wrap gap-4 items-center">
                     <button onClick={handleGenerate} className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2.5 rounded-xl shadow transition duration-200 transform active:scale-95 cursor-pointer text-sm">
