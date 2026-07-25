@@ -121,20 +121,21 @@ app.post('/api/descriptions', requireAuth, async (req, res) => {
     const { prodName, ingredients, weight, features, tone } = req.body;
     if (!prodName) return res.status(400).json({ error: "Validation failed: Product Name is required." });
 
-    // 🌟 FIXED: Switched model string to the supported 'gemini-3.5-flash' version
     const response = await ai.interactions.create({
       model: 'gemini-3.5-flash', 
-      input: `You are an expert e-commerce copywriter. Generate a highly persuasive, marketplace-optimized product description asset based on the following attributes:
+      input: `You are an expert e-commerce copywriter. Generate a concise, high-converting product description based on the following attributes:
       - Product Name: ${prodName}
       - Materials Used: ${ingredients || 'N/A'}
       - Weight/Dimensions: ${weight || 'N/A'}
       - Unique Features: ${features || 'N/A'}
       
-      CRUCIAL INSTRUCTION: Generate the output using a strict, high-quality "${tone || 'Professional'}" marketing tone alignment.
-      Structure the output text beautifully: open with an attention-grabbing hook paragraph, followed by a clean bulleted list highlighting the key features or materials value. Keep it professional.`,
+      CRUCIAL LENGTH & FORMATTING INSTRUCTIONS:
+      1. Keep the output SHORT, punchy, and under 80-100 words total.
+      2. Tone: Strictly align with a "${tone || 'Professional'}" marketing tone alignment.
+      3. Structure: Open with a 1-2 sentence snappy hook paragraph, followed by 2-3 short bullet points highlighting key features or materials value.
+      4. Avoid filler text, long intro phrases, or fluffy descriptions.`,
     });
 
-    // Extracting the text output via the specification output_text string property
     const outputCopy = response.output_text; 
 
     const newLog = new Description({ prodName, ingredients, weight, features, outputCopy });
@@ -145,6 +146,7 @@ app.post('/api/descriptions', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 app.put('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
     const updatedLog = await Description.findByIdAndUpdate(req.params.id, req.body, { new: true });
