@@ -24,8 +24,7 @@ export default function App() {
   const [outputCopy, setOutputCopy] = useState('');
 
   const [itemsList, setItemsList] = useState([]);
-const API_BASE_URL = 'http://127.0.0.1:5000/api/descriptions';
- 
+  const API_BASE_URL = 'http://127.0.0.1:5000/api/descriptions';
   const AUTH_BASE_URL = 'http://localhost:5000/api/auth';
 
   useEffect(() => {
@@ -379,15 +378,15 @@ const API_BASE_URL = 'http://127.0.0.1:5000/api/descriptions';
         )}
 
         {page === 'about' && (
-          <div className="max-w-3xl mx-auto px-6 py-20 text-center w-full">
-            <div className={`p-8 rounded-2xl shadow-xl border transition-colors duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-black'}`}>
-              <h1 className="text-2xl font-bold mb-4 text-[#6355a4]">About</h1>
-              <p className={`text-sm font-medium leading-relaxed transition-colors duration-300 ${darkMode ? 'text-zinc-300' : 'text-slate-600'}`}>
-                Descripto_AI is an advanced automated copywriting workspace designed to turn complex, granular product listings into highly persuasive and indexing-optimized marketplace assets instantly.
-              </p>
-            </div>
-          </div>
-        )}
+  <div className="max-w-4xl mx-auto px-6 py-16 w-full">
+    <div className="p-8 rounded-2xl shadow-xl border border-white/20 bg-[#6355a4] text-white">
+      <h1 className="text-3xl font-bold mb-6 text-white">About Descripto_AI</h1>
+      <p className="text-base font-normal leading-relaxed text-justify text-white/90">
+        Descripto_AI is an intelligent AI-powered platform that transforms basic product information into professional, engaging, and SEO-optimized product descriptions within seconds. Designed for businesses, startups, and online sellers, it helps create compelling content for e-commerce platforms such as Amazon and Flipkart by generating catchy product titles, persuasive sales copy, detailed descriptions, and key product benefits. With multiple writing styles like Premium, Traditional, and Health-Focused, Descripto_AI ensures every description matches your brand's voice while improving product visibility and customer engagement. By combining advanced AI with a simple, user-friendly interface, Descripto_AI eliminates the hassle of manual content writing, saves valuable time, and enables users to create high-quality, marketplace-ready product descriptions effortlessly.
+      </p>
+    </div>
+  </div>
+)}
 
         {page === 'login' && (
           <div className="max-w-md mx-auto px-6 py-16 text-center w-full">
