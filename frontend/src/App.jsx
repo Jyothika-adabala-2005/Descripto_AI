@@ -26,6 +26,9 @@ export default function App() {
   const [itemsList, setItemsList] = useState([]);
   const API_BASE_URL = 'http://127.0.0.1:5000/api/descriptions';
   const AUTH_BASE_URL = 'http://localhost:5000/api/auth';
+  const [viewingItem, setViewingItem] = useState(null);
+const [editingItem, setEditingItem] = useState(null);
+const [updatedCopy, setUpdatedCopy] = useState('');
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -111,6 +114,34 @@ export default function App() {
     }
   };
 
+  const handleUpdateDescription = async (id) => {
+  if (!userToken) return;
+  setLoading(true);
+  try {
+    const response = await fetch(`${API_BASE_URL}/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${userToken}`
+      },
+      body: JSON.stringify({ outputCopy: updatedCopy })
+    });
+
+    if (!response.ok) throw new Error("Failed to update description.");
+
+    setToastMessage("Description updated successfully! ✨");
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+    setEditingItem(null);
+    fetchAllDescriptions();
+  } catch (err) {
+    setToastMessage(err.message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+  } finally {
+    setLoading(false);
+  }
+};
   const handleLoginSubmit = async () => {
     if (!authEmail || !authPassword) {
       setToastMessage("Please fill in all email credentials!");
@@ -340,42 +371,99 @@ export default function App() {
         )}
 
         {page === 'list' && (
-          <div className="max-w-4xl mx-auto px-6 py-12 w-full">
-            {!userToken ? (
-              <div className="text-center py-20">
-                <h2 className="text-xl font-bold mb-4">Please log in to view stored descriptions</h2>
-                <button onClick={() => setPage('login')} className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2 rounded-xl transition">
-                  Go to Login
-                </button>
-              </div>
-            ) : (
-              <>
-                <h1 className={`text-2xl font-black mb-8 text-center tracking-wide ${darkMode ? 'text-white' : 'text-black'}`}>List of product descriptions created</h1>
-                <Loader isLoading={loading} />
-                <div className="space-y-4">
-                  {itemsList.length === 0 ? (
-                    <p className="text-center italic text-sm text-slate-400 py-10">No records found on backend database.</p>
-                  ) : (
-                    itemsList.map((item) => (
-                      <div key={item._id} className={`p-6 rounded-xl shadow-md border flex items-center justify-between transition-all duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-black'}`}>
-                        <div>
-                          <h3 className="text-lg font-bold text-[#6355a4]">{item.prodName}</h3>
-                          <p className="text-xs text-slate-400 font-mono mt-1">Weight Bounds: {item.weight || 'N/A'}</p>
-                        </div>
-                        <button 
-                          onClick={() => handleDeleteItem(item._id)}
-                          className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))
-                  )}
+  <div className="max-w-4xl mx-auto px-6 py-12 w-full">
+    {!userToken ? (
+      <div className="text-center py-20">
+        <h2 className="text-xl font-bold mb-4">Please log in to view stored descriptions</h2>
+        <button onClick={() => setPage('login')} className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2 rounded-xl transition">
+          Go to Login
+        </button>
+      </div>
+    ) : (
+      <>
+        <h1 className={`text-2xl font-black mb-8 text-center tracking-wide ${darkMode ? 'text-white' : 'text-black'}`}>
+          List of product descriptions created
+        </h1>
+        <Loader isLoading={loading} />
+        <div className="space-y-4">
+          {itemsList.length === 0 ? (
+            <p className="text-center italic text-sm text-slate-400 py-10">No records found on backend database.</p>
+          ) : (
+            itemsList.map((item) => (
+              <div key={item._id} className={`p-6 rounded-xl shadow-md border transition-all duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-black'}`}>
+                
+                {/* Header Row with Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#6355a4]">{item.prodName}</h3>
+                    <p className="text-xs text-slate-400 font-mono mt-1">Weight Bounds: {item.weight || 'N/A'}</p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setViewingItem(viewingItem === item._id ? null : item._id)}
+                      className="bg-[#6355a4] hover:bg-[#524493] text-white text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      {viewingItem === item._id ? 'Hide' : 'View'}
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setEditingItem(editingItem === item._id ? null : item._id);
+                        setUpdatedCopy(item.outputCopy);
+                      }}
+                      className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      {editingItem === item._id ? 'Cancel' : 'Update'}
+                    </button>
+
+                    <button 
+                      onClick={() => handleDeleteItem(item._id)}
+                      className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </>
-            )}
-          </div>
-        )}
+
+                {/* Expanded View Panel */}
+                {viewingItem === item._id && (
+                  <div className={`mt-4 p-4 rounded-xl border text-sm font-mono whitespace-pre-wrap ${darkMode ? 'bg-black border-zinc-800 text-zinc-300' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                    <p className="text-xs font-bold uppercase mb-2 text-[#6355a4]">Stored Inputs:</p>
+                    <p className="text-xs mb-1"><strong>Materials:</strong> {item.ingredients || 'N/A'}</p>
+                    <p className="text-xs mb-3"><strong>Features:</strong> {item.features || 'N/A'}</p>
+                    <p className="text-xs font-bold uppercase mb-2 text-[#6355a4]">Generated Description:</p>
+                    {item.outputCopy}
+                  </div>
+                )}
+
+                {/* Expanded Update/Edit Panel */}
+                {editingItem === item._id && (
+                  <div className="mt-4 space-y-3">
+                    <textarea 
+                      value={updatedCopy}
+                      onChange={(e) => setUpdatedCopy(e.target.value)}
+                      rows={5}
+                      className={`w-full p-3 text-sm rounded-xl border font-mono focus:outline-none focus:ring-2 focus:ring-[#6355a4] ${darkMode ? 'bg-black border-zinc-700 text-white' : 'bg-white border-slate-300 text-black'}`}
+                    />
+                    <button 
+                      onClick={() => handleUpdateDescription(item._id)}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            ))
+          )}
+        </div>
+      </>
+    )}
+  </div>
+)}
 
         {page === 'about' && (
   <div className="max-w-4xl mx-auto px-6 py-16 w-full">

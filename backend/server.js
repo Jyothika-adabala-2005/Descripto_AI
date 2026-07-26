@@ -116,6 +116,7 @@ app.get('/api/descriptions/:id', requireAuth, async (req, res) => {
   }
 });
 
+
 app.post('/api/descriptions', requireAuth, async (req, res) => {
   try {
     const { prodName, ingredients, weight, features, tone } = req.body;
@@ -149,9 +150,14 @@ app.post('/api/descriptions', requireAuth, async (req, res) => {
 
 app.put('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
-    const updatedLog = await Description.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedLog) return res.status(404).json({ error: "Record not found." });
-    res.status(200).json(updatedLog);
+    const { outputCopy } = req.body;
+    const updatedRecord = await Description.findByIdAndUpdate(
+      req.params.id,
+      { outputCopy },
+      { new: true }
+    );
+    if (!updatedRecord) return res.status(404).json({ error: "Record not found." });
+    res.json(updatedRecord);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
