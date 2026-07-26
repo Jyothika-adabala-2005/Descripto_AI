@@ -16,4 +16,5 @@ export default function Button({ children, variant = 'primary', onClick }) {
       {children}
     </button>
   );
+  
 }

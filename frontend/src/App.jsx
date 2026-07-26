@@ -369,7 +369,6 @@ const [updatedCopy, setUpdatedCopy] = useState('');
             )}
           </div>
         )}
-
         {page === 'list' && (
   <div className="max-w-4xl mx-auto px-6 py-12 w-full">
     {!userToken ? (
@@ -465,7 +464,9 @@ const [updatedCopy, setUpdatedCopy] = useState('');
   </div>
 )}
 
-        {page === 'about' && (
+     
+
+           {page === 'about' && (
   <div className="max-w-4xl mx-auto px-6 py-16 w-full">
     <div className="p-8 rounded-2xl shadow-xl border border-white/20 bg-[#6355a4] text-white">
       <h1 className="text-3xl font-bold mb-6 text-white">About Descripto_AI</h1>
