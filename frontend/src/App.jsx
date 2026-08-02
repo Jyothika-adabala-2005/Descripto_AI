@@ -26,10 +26,10 @@ export default function App() {
 
   const [itemsList, setItemsList] = useState([]);
   
-const API_BASE_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api/descriptions` 
-  : 'http://localhost:5000/api/descriptions';
-const AUTH_BASE_URL = 'http://localhost:5000/api/auth';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const API_BASE_URL = `${BASE_URL}/api/descriptions`;
+const AUTH_BASE_URL = `${BASE_URL}/api/auth`;
   
   const [viewingItem, setViewingItem] = useState(null);
   const [editingItem, setEditingItem] = useState(null);

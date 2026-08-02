@@ -2,12 +2,14 @@
 
 An automated marketing copy assistant optimized for HimShakti e-commerce product listings.
 
-## Tech Stack
-- **Frontend:** React.js (Vite)
-- **Backend:** Node.js & Express.js
-- **Database:** MongoDB Atlas (Mongoose)
-- **AI Core:** Google Gemini 1.5 Flash API
-- **Styling:** Tailwind CSS
+
+## 🛠️ Tech Stack Summary
+
+* **Frontend:** React.js, Vite, Tailwind CSS (Hosted on Vercel)
+* **Backend:** Node.js, Express.js (Hosted on Render)
+* **Database:** MongoDB Atlas (Mongoose ODM)
+* **AI Engine:** Google Gemini API (`gemini-1.5-flash`)
+* **Auth:** JWT (JSON Web Tokens) & Google OAuth 2.0
 
 ### Database Management
 * **Database Choice:** MongoDB Atlas (NoSQL Document Store) chosen for its flexible schema matching text-generation parameters.
@@ -27,33 +29,40 @@ This schema manages authentication, enabling the registration and validation wal
 - createdAt / updatedAt (Date): Automatic timestamps tracking when the account was registered and last modified.
 
 ### 2. Descriptions Schema
-This schema maps directly to the AI-generated marketplace content. It captures the user's raw form inputs and pairs them with the final text output block.
 
-- _id (ObjectId): The unique identifier used by the backend to fetch or permanently delete individual records from the database.
+_id (ObjectId): Unique primary key.
 
-- prodName (String): The required name/identifier of the product.
+userId (ObjectId): Reference to Users model (ref: 'User').
 
-- ingredients (String): Core components or materials making up the item.
+prodName (String): Required product name.
 
-- weight (String): The structural batch quantity or mass boundaries.
+materials (String): Product materials or ingredients.
 
-- features (String): Unique value highlights or characteristics of the product.
+weight (String): Product mass or batch quantity.
 
-- outputCopy (String): The final, comprehensive marketplace description compiled by the server.
+features (String): Key highlights or features.
 
-- createdAt / updatedAt (Date): Timestamps marking exactly when the listing was created and last updated.
+outputCopy (String): Generated AI marketplace description text.
 
-### Schemas
+createdAt / updatedAt (Date): Automatic Mongoose timestamps
 
-┌──────────────────────────────────┐        ┌──────────────────────────────────┐
-│              Users               │        │           Descriptions           │
-├──────────────────────────────────┤        ├──────────────────────────────────┤
-│ _id       : ObjectId (PK)        │        │ _id         : ObjectId (PK)      │
-│ email     : String (Unique)      │        │ prodName    : String             │
-│ password  : String (Hashed)      │        │ ingredients : String             │
-│ createdAt : Date                 │        │ weight      : String             │
-│ updatedAt : Date                 │        │ features    : String             │
-└──────────────────────────────────┘        │ outputCopy  : String             │
-                                            │ createdAt   : Date               │
-                                            │ updatedAt   : Date               │
-                                            └──────────────────────────────────┘
+## 🌐 Live Deployment & Demo
+
+* **Live Frontend App:** [https://descripto-ai-virid.vercel.app](https://descripto-ai-virid.vercel.app)
+* **Live Backend API:** [https://descripto-ai-ue4o.onrender.com](https://descripto-ai-ue4o.onrender.com)
+
+
+## ✨ Features
+
+* **AI Generation:** Instant product listing creation powered by Google's Gemini Flash model.
+* **Authentication:** Secure user sign-up and sign-in using JSON Web Tokens (JWT) and Google OAuth.
+* **Saved Listings (CRUD):** Save generated output to MongoDB Atlas, view saved lists, and delete old descriptions.
+* **One-Click Copy:** Fast utility to copy generated copy directly to the clipboard.
+* **Responsive UI:** Modern dashboard styled with Tailwind CSS.
+
+
+⚠️ Known Limitations on Free Tier
+
+Render Cold Start: The backend is hosted on Render's free tier, which spins down after 15 minutes of inactivity. The first API request after an idle period may take 30–60 seconds to wake up the instance. Subsequent requests will operate at standard speeds.
+
+Database Limits: MongoDB Atlas free cluster provides up to 512MB storage capacity

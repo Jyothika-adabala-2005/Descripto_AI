@@ -66,7 +66,7 @@ app.get('/api/descriptions', requireAuth, async (req, res) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'DUMMY_CLIENT_ID',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'DUMMY_CLIENT_SECRET',
-    callbackURL: "http://localhost:5000/api/auth/google/callback"
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:5000/api/auth/google/callback"
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -88,7 +88,9 @@ app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile',
 
 app.get('/api/auth/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
   const token = jwt.sign({ userId: req.user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?token=${token}`);
+  const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = rawFrontendUrl.replace(/\/$/, ''); // Removes trailing slash if present
+  res.redirect(`${frontendUrl}?token=${token}`);
 });
 
 app.get('/api/descriptions/search', requireAuth, async (req, res) => {
