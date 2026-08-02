@@ -10,4 +10,6 @@ export default function Card({ badge, title, description }) {
       </div>
     </div>
   );
+
+  
 }

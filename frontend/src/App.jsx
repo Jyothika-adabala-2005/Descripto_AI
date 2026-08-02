@@ -12,7 +12,7 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [authEmail, setAuthEmail] = useState('');
+  const [authEmail, setAuthEmail] = useState(localStorage.getItem('userEmail') || '');
   const [authPassword, setAuthPassword] = useState('');
   const [userToken, setUserToken] = useState(localStorage.getItem('token') || '');
 
@@ -26,9 +26,13 @@ export default function App() {
   const [itemsList, setItemsList] = useState([]);
   const API_BASE_URL = 'http://127.0.0.1:5000/api/descriptions';
   const AUTH_BASE_URL = 'http://localhost:5000/api/auth';
+  
   const [viewingItem, setViewingItem] = useState(null);
-const [editingItem, setEditingItem] = useState(null);
-const [updatedCopy, setUpdatedCopy] = useState('');
+  const [editingItem, setEditingItem] = useState(null);
+  const [updatedCopy, setUpdatedCopy] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const userName = authEmail ? authEmail.split('@')[0] : (localStorage.getItem('userEmail') ? localStorage.getItem('userEmail').split('@')[0] : 'User');
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -98,12 +102,12 @@ const [updatedCopy, setUpdatedCopy] = useState('');
       if (!response.ok) throw new Error(data.error || "Signup process failed.");
       
       localStorage.setItem('token', data.token);
+      localStorage.setItem('userEmail', authEmail);
       setUserToken(data.token);
       setToastMessage("Account registered successfully! Welcome.");
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 3000);
       setPage('dashboard');
-      setAuthEmail('');
       setAuthPassword('');
     } catch (err) {
       setToastMessage(err.message);
@@ -115,33 +119,34 @@ const [updatedCopy, setUpdatedCopy] = useState('');
   };
 
   const handleUpdateDescription = async (id) => {
-  if (!userToken) return;
-  setLoading(true);
-  try {
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${userToken}`
-      },
-      body: JSON.stringify({ outputCopy: updatedCopy })
-    });
+    if (!userToken) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        },
+        body: JSON.stringify({ outputCopy: updatedCopy })
+      });
 
-    if (!response.ok) throw new Error("Failed to update description.");
+      if (!response.ok) throw new Error("Failed to update description.");
 
-    setToastMessage("Description updated successfully! ✨");
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 3000);
-    setEditingItem(null);
-    fetchAllDescriptions();
-  } catch (err) {
-    setToastMessage(err.message);
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 3000);
-  } finally {
-    setLoading(false);
-  }
-};
+      setToastMessage("Description updated successfully! ✨");
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+      setEditingItem(null);
+      fetchAllDescriptions();
+    } catch (err) {
+      setToastMessage(err.message);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLoginSubmit = async () => {
     if (!authEmail || !authPassword) {
       setToastMessage("Please fill in all email credentials!");
@@ -160,12 +165,12 @@ const [updatedCopy, setUpdatedCopy] = useState('');
       if (!response.ok) throw new Error(data.error || "Invalid user credentials.");
       
       localStorage.setItem('token', data.token);
+      localStorage.setItem('userEmail', authEmail);
       setUserToken(data.token);
       setToastMessage("Logged in securely! Welcome back.");
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 3000);
       setPage('dashboard');
-      setAuthEmail('');
       setAuthPassword('');
     } catch (err) {
       setToastMessage(err.message);
@@ -178,7 +183,9 @@ const [updatedCopy, setUpdatedCopy] = useState('');
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
     setUserToken('');
+    setAuthEmail('');
     setItemsList([]);
     setPage('home');
     setToastMessage("Logged out successfully.");
@@ -271,6 +278,18 @@ const [updatedCopy, setUpdatedCopy] = useState('');
     setTimeout(() => setToastVisible(false), 3000);
   };
 
+  const handleNew = () => {
+    setProdName('');
+    setIngredients('');
+    setWeight('');
+    setFeatures('');
+    setTone('Professional');
+    setOutputCopy('');
+    setToastMessage("Form reset! Ready for a new product.");
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2000);
+  };
+
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased bg-[#6355a4]">
       
@@ -282,8 +301,16 @@ const [updatedCopy, setUpdatedCopy] = useState('');
           setDarkMode={setDarkMode} 
           userToken={userToken} 
           handleLogout={handleLogout} 
+          userEmail={authEmail}
         />
       </header>
+
+      
+{userToken && (
+  <div className={`w-full px-6 md:px-8 py-2 text-right font-bold text-sm tracking-wide transition-colors duration-300 ${darkMode ? 'bg-black text-[#6355a4]' : 'bg-white text-[#6355a4]'}`}>
+    Hi, {userName} 👋
+  </div>
+)}
 
       <main className={`flex-grow flex flex-col justify-center transition-colors duration-300 ${darkMode ? 'bg-[#000000] text-white' : 'bg-[#ffffff] text-black'}`}>
         
@@ -329,11 +356,24 @@ const [updatedCopy, setUpdatedCopy] = useState('');
                     <option value="Humorous">💬 Witty / Casual</option>
                   </select>
                   
-                  <div className="pt-4 flex flex-wrap gap-4 items-center">
-                    <button onClick={handleGenerate} className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2.5 rounded-xl shadow transition duration-200 transform active:scale-95 cursor-pointer text-sm">
+                  <div className="pt-4 flex flex-wrap gap-3 items-center">
+                    <button 
+                      onClick={handleGenerate} 
+                      className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2.5 rounded-xl shadow transition duration-200 transform active:scale-95 cursor-pointer text-sm"
+                    >
                       Generate
                     </button>
-                    <Button variant="secondary" onClick={() => setModalOpen(true)}>Specifications</Button>
+
+                    <button 
+                      onClick={handleNew} 
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl shadow transition duration-200 transform active:scale-95 cursor-pointer text-sm"
+                    >
+                      ✨ New
+                    </button>
+
+                    <Button variant="secondary" onClick={() => setModalOpen(true)}>
+                      Specifications
+                    </Button>
                   </div>
                   <Loader isLoading={loading} />
                 </div>
@@ -369,113 +409,108 @@ const [updatedCopy, setUpdatedCopy] = useState('');
             )}
           </div>
         )}
+
         {page === 'list' && (
-  <div className="max-w-4xl mx-auto px-6 py-12 w-full">
-    {!userToken ? (
-      <div className="text-center py-20">
-        <h2 className="text-xl font-bold mb-4">Please log in to view stored descriptions</h2>
-        <button onClick={() => setPage('login')} className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2 rounded-xl transition">
-          Go to Login
-        </button>
-      </div>
-    ) : (
-      <>
-        <h1 className={`text-2xl font-black mb-8 text-center tracking-wide ${darkMode ? 'text-white' : 'text-black'}`}>
-          List of product descriptions created
-        </h1>
-        <Loader isLoading={loading} />
-        <div className="space-y-4">
-          {itemsList.length === 0 ? (
-            <p className="text-center italic text-sm text-slate-400 py-10">No records found on backend database.</p>
-          ) : (
-            itemsList.map((item) => (
-              <div key={item._id} className={`p-6 rounded-xl shadow-md border transition-all duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-black'}`}>
-                
-                {/* Header Row with Actions */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-[#6355a4]">{item.prodName}</h3>
-                    <p className="text-xs text-slate-400 font-mono mt-1">Weight Bounds: {item.weight || 'N/A'}</p>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => setViewingItem(viewingItem === item._id ? null : item._id)}
-                      className="bg-[#6355a4] hover:bg-[#524493] text-white text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer"
-                    >
-                      {viewingItem === item._id ? 'Hide' : 'View'}
-                    </button>
-
-                    <button 
-                      onClick={() => {
-                        setEditingItem(editingItem === item._id ? null : item._id);
-                        setUpdatedCopy(item.outputCopy);
-                      }}
-                      className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer"
-                    >
-                      {editingItem === item._id ? 'Cancel' : 'Update'}
-                    </button>
-
-                    <button 
-                      onClick={() => handleDeleteItem(item._id)}
-                      className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                {/* Expanded View Panel */}
-                {viewingItem === item._id && (
-                  <div className={`mt-4 p-4 rounded-xl border text-sm font-mono whitespace-pre-wrap ${darkMode ? 'bg-black border-zinc-800 text-zinc-300' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                    <p className="text-xs font-bold uppercase mb-2 text-[#6355a4]">Stored Inputs:</p>
-                    <p className="text-xs mb-1"><strong>Materials:</strong> {item.ingredients || 'N/A'}</p>
-                    <p className="text-xs mb-3"><strong>Features:</strong> {item.features || 'N/A'}</p>
-                    <p className="text-xs font-bold uppercase mb-2 text-[#6355a4]">Generated Description:</p>
-                    {item.outputCopy}
-                  </div>
-                )}
-
-                {/* Expanded Update/Edit Panel */}
-                {editingItem === item._id && (
-                  <div className="mt-4 space-y-3">
-                    <textarea 
-                      value={updatedCopy}
-                      onChange={(e) => setUpdatedCopy(e.target.value)}
-                      rows={5}
-                      className={`w-full p-3 text-sm rounded-xl border font-mono focus:outline-none focus:ring-2 focus:ring-[#6355a4] ${darkMode ? 'bg-black border-zinc-700 text-white' : 'bg-white border-slate-300 text-black'}`}
-                    />
-                    <button 
-                      onClick={() => handleUpdateDescription(item._id)}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
-                    >
-                      Save Changes
-                    </button>
-                  </div>
-                )}
-
+          <div className="max-w-4xl mx-auto px-6 py-12 w-full">
+            {!userToken ? (
+              <div className="text-center py-20">
+                <h2 className="text-xl font-bold mb-4">Please log in to view stored descriptions</h2>
+                <button onClick={() => setPage('login')} className="bg-[#6355a4] hover:bg-[#524493] text-white font-bold px-6 py-2 rounded-xl transition">
+                  Go to Login
+                </button>
               </div>
-            ))
-          )}
-        </div>
-      </>
-    )}
-  </div>
-)}
+            ) : (
+              <>
+                <h1 className={`text-2xl font-black mb-8 text-center tracking-wide ${darkMode ? 'text-white' : 'text-black'}`}>
+                  List of product descriptions created
+                </h1>
+                <Loader isLoading={loading} />
+                <div className="space-y-4">
+                  {itemsList.length === 0 ? (
+                    <p className="text-center italic text-sm text-slate-400 py-10">No records found on backend database.</p>
+                  ) : (
+                    itemsList.map((item) => (
+                      <div key={item._id} className={`p-6 rounded-xl shadow-md border transition-all duration-300 ${darkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-black'}`}>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            <h3 className="text-lg font-bold text-[#6355a4]">{item.prodName}</h3>
+                            <p className="text-xs text-slate-400 font-mono mt-1">Weight Bounds: {item.weight || 'N/A'}</p>
+                          </div>
 
-     
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => setViewingItem(viewingItem === item._id ? null : item._id)}
+                              className="bg-[#6355a4] hover:bg-[#524493] text-white text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer"
+                            >
+                              {viewingItem === item._id ? 'Hide' : 'View'}
+                            </button>
 
-           {page === 'about' && (
-  <div className="max-w-4xl mx-auto px-6 py-16 w-full">
-    <div className="p-8 rounded-2xl shadow-xl border border-white/20 bg-[#6355a4] text-white">
-      <h1 className="text-3xl font-bold mb-6 text-white">About Descripto_AI</h1>
-      <p className="text-base font-normal leading-relaxed text-justify text-white/90">
-        Descripto_AI is an intelligent AI-powered platform that transforms basic product information into professional, engaging, and SEO-optimized product descriptions within seconds. Designed for businesses, startups, and online sellers, it helps create compelling content for e-commerce platforms such as Amazon and Flipkart by generating catchy product titles, persuasive sales copy, detailed descriptions, and key product benefits. With multiple writing styles like Premium, Traditional, and Health-Focused, Descripto_AI ensures every description matches your brand's voice while improving product visibility and customer engagement. By combining advanced AI with a simple, user-friendly interface, Descripto_AI eliminates the hassle of manual content writing, saves valuable time, and enables users to create high-quality, marketplace-ready product descriptions effortlessly.
-      </p>
-    </div>
-  </div>
-)}
+                            <button 
+                              onClick={() => {
+                                setEditingItem(editingItem === item._id ? null : item._id);
+                                setUpdatedCopy(item.outputCopy);
+                              }}
+                              className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer"
+                            >
+                              {editingItem === item._id ? 'Cancel' : 'Update'}
+                            </button>
+
+                            <button 
+                              onClick={() => handleDeleteItem(item._id)}
+                              className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+
+                        {viewingItem === item._id && (
+                          <div className={`mt-4 p-4 rounded-xl border text-sm font-mono whitespace-pre-wrap ${darkMode ? 'bg-black border-zinc-800 text-zinc-300' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                            <p className="text-xs font-bold uppercase mb-2 text-[#6355a4]">Stored Inputs:</p>
+                            <p className="text-xs mb-1"><strong>Materials:</strong> {item.ingredients || 'N/A'}</p>
+                            <p className="text-xs mb-3"><strong>Features:</strong> {item.features || 'N/A'}</p>
+                            <p className="text-xs font-bold uppercase mb-2 text-[#6355a4]">Generated Description:</p>
+                            {item.outputCopy}
+                          </div>
+                        )}
+
+                        {editingItem === item._id && (
+                          <div className="mt-4 space-y-3">
+                            <textarea 
+                              value={updatedCopy}
+                              onChange={(e) => setUpdatedCopy(e.target.value)}
+                              rows={5}
+                              className={`w-full p-3 text-sm rounded-xl border font-mono focus:outline-none focus:ring-2 focus:ring-[#6355a4] ${darkMode ? 'bg-black border-zinc-700 text-white' : 'bg-white border-slate-300 text-black'}`}
+                            />
+                            <button 
+                              onClick={() => handleUpdateDescription(item._id)}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
+                            >
+                              Save Changes
+                            </button>
+                          </div>
+                        )}
+
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {page === 'about' && (
+          <div className="max-w-4xl mx-auto px-6 py-16 w-full">
+            <div className="p-8 rounded-2xl shadow-xl border border-white/20 bg-[#6355a4] text-white">
+              <h1 className="text-3xl font-bold mb-6 text-white">About Descripto_AI</h1>
+              <p className="text-base font-normal leading-relaxed text-justify text-white/90">
+                Descripto_AI is an intelligent AI-powered platform that transforms basic product information into professional, engaging, and SEO-optimized product descriptions within seconds. Designed for businesses, startups, and online sellers, it helps create compelling content for e-commerce platforms such as Amazon and Flipkart by generating catchy product titles, persuasive sales copy, detailed descriptions, and key product benefits. With multiple writing styles like Premium, Traditional, and Health-Focused, Descripto_AI ensures every description matches your brand's voice while improving product visibility and customer engagement. By combining advanced AI with a simple, user-friendly interface, Descripto_AI eliminates the hassle of manual content writing, saves valuable time, and enables users to create high-quality, marketplace-ready product descriptions effortlessly.
+              </p>
+            </div>
+          </div>
+        )}
 
         {page === 'login' && (
           <div className="max-w-md mx-auto px-6 py-16 text-center w-full">
@@ -488,7 +523,22 @@ const [updatedCopy, setUpdatedCopy] = useState('');
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase mb-1 text-slate-400">Password :</label>
-                  <Input type="password" placeholder="••••••••" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} />
+                  <div className="relative flex items-center">
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="••••••••" 
+                      value={authPassword} 
+                      onChange={(e) => setAuthPassword(e.target.value)} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 text-sm text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? '👁️' : '🙈'}
+                    </button>
+                  </div>
                 </div>
               </div>
               <button onClick={handleLoginSubmit} className="w-full bg-[#6355a4] hover:bg-[#524493] text-white font-bold py-2.5 rounded-xl shadow border-none tracking-wide text-sm cursor-pointer transition duration-200 transform active:scale-95">
@@ -502,7 +552,7 @@ const [updatedCopy, setUpdatedCopy] = useState('');
               </button>
               <p className="mt-4 text-xs text-slate-400">
                 Don't have an account?{' '}
-                <span onClick={() => { setPage('signup'); setAuthEmail(''); setAuthPassword(''); }} className="text-[#6355a4] hover:underline cursor-pointer font-bold">
+                <span onClick={() => { setPage('signup'); setAuthEmail(''); setAuthPassword(''); setShowPassword(false); }} className="text-[#6355a4] hover:underline cursor-pointer font-bold">
                   Sign up here
                 </span>
               </p>
@@ -521,7 +571,22 @@ const [updatedCopy, setUpdatedCopy] = useState('');
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase mb-1 text-slate-400">Password :</label>
-                  <Input type="password" placeholder="••••••••" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} />
+                  <div className="relative flex items-center">
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="••••••••" 
+                      value={authPassword} 
+                      onChange={(e) => setAuthPassword(e.target.value)} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 text-sm text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? '👁️' : '🙈'}
+                    </button>
+                  </div>
                 </div>
               </div>
               <button onClick={handleSignupSubmit} className="w-full bg-[#6355a4] hover:bg-[#524493] text-white font-bold py-2.5 rounded-xl shadow border-none tracking-wide text-sm cursor-pointer transition duration-200 transform active:scale-95">
@@ -529,16 +594,17 @@ const [updatedCopy, setUpdatedCopy] = useState('');
               </button>
               <p className="mt-4 text-xs text-slate-400">
                 Already have an account?{' '}
-                <span onClick={() => { setPage('login'); setAuthEmail(''); setAuthPassword(''); }} className="text-[#6355a4] hover:underline cursor-pointer font-bold">
+                <span onClick={() => { setPage('login'); setAuthEmail(''); setAuthPassword(''); setShowPassword(false); }} className="text-[#6355a4] hover:underline cursor-pointer font-bold">
                   Login here
                 </span>
               </p>
             </div>
           </div>
         )}
+        
       </main>
 
-      <Footer />
+      <Footer setPage={setPage} />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
         <h3 className="text-lg font-bold mb-2 text-black">System Specification Summary</h3>

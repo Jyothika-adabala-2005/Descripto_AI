@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Footer = ({ setPage, page }) => {
+const Footer = ({ setPage }) => {
   return (
     <footer className="bg-[#524493] text-white border-t border-white/10 mt-auto py-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
@@ -19,6 +19,7 @@ const Footer = ({ setPage, page }) => {
           <ul className="flex flex-wrap justify-center md:justify-start gap-4 text-xs font-medium text-white/90">
             <li>
               <button 
+                type="button"
                 onClick={() => setPage('home')} 
                 className="hover:underline transition cursor-pointer"
               >
@@ -27,6 +28,7 @@ const Footer = ({ setPage, page }) => {
             </li>
             <li>
               <button 
+                type="button"
                 onClick={() => setPage('dashboard')} 
                 className="hover:underline transition cursor-pointer"
               >
@@ -35,6 +37,7 @@ const Footer = ({ setPage, page }) => {
             </li>
             <li>
               <button 
+                type="button"
                 onClick={() => setPage('list')} 
                 className="hover:underline transition cursor-pointer"
               >
@@ -43,6 +46,7 @@ const Footer = ({ setPage, page }) => {
             </li>
             <li>
               <button 
+                type="button"
                 onClick={() => setPage('about')} 
                 className="hover:underline transition cursor-pointer"
               >
@@ -52,7 +56,7 @@ const Footer = ({ setPage, page }) => {
           </ul>
         </div>
 
-        {/* Tech Stack & Platform Badges */}
+        {/* Tech Stack Specs */}
         <div className="space-y-2">
           <h3 className="text-sm font-bold text-white uppercase tracking-wider">Engine Specs</h3>
           <p className="text-xs text-white/80">
@@ -66,7 +70,6 @@ const Footer = ({ setPage, page }) => {
 
       </div>
 
-      {/* Copyright Line */}
       <div className="max-w-6xl mx-auto px-6 mt-8 pt-4 border-t border-white/10 text-center text-xs text-white/60">
         &copy; {new Date().getFullYear()} Descripto_AI. All rights reserved.
       </div>
