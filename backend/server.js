@@ -54,15 +54,7 @@ const requireAuth = (req, res, next) => {
   }
 };
 
-app.get('/api/descriptions', requireAuth, async (req, res) => {
-  try {
-    const logs = await Description.find().sort({ createdAt: -1 });
-    res.status(200).json(logs);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
+// Passport Strategy Setup (Cleaned & Single Instance)
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'DUMMY_CLIENT_ID',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'DUMMY_CLIENT_SECRET',
@@ -74,23 +66,50 @@ passport.use(new GoogleStrategy({
       let user = await User.findOne({ email });
       
       if (!user) {
-        user = new User({ email, password: 'OAUTH_EXTERNAL_ACCOUNT_VALIDATION_STRING' });
+        // Hash dummy password so Mongoose Schema validation passes cleanly
+        const hashedPassword = await bcrypt.hash('OAUTH_EXTERNAL_ACCOUNT_VALIDATION_STRING', 10);
+        user = new User({ email, password: hashedPassword });
         await user.save();
       }
       return done(null, user);
     } catch (err) {
+      console.error("❌ Google Strategy Setup Error:", err);
       return done(err, null);
     }
   }
 ));
 
+// Auth Routes
 app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/api/auth/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
-  const token = jwt.sign({ userId: req.user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const frontendUrl = rawFrontendUrl.replace(/\/$/, ''); // Removes trailing slash if present
-  res.redirect(`${frontendUrl}?token=${token}`);
+app.get('/api/auth/google/callback', (req, res, next) => {
+  passport.authenticate('google', { session: false }, (err, user, info) => {
+    if (err || !user) {
+      console.error("❌ Google Callback Error Details:", err || info);
+      const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = rawFrontendUrl.trim().replace(/\/$/, '');
+      return res.redirect(`${frontendUrl}?error=auth_failed`);
+    }
+
+    try {
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = rawFrontendUrl.trim().replace(/\/$/, '');
+      return res.redirect(`${frontendUrl}?token=${token}`);
+    } catch (tokenErr) {
+      console.error("❌ JWT Generation Failure:", tokenErr);
+      return res.status(500).json({ error: "JWT Generation failed." });
+    }
+  })(req, res, next);
+});
+
+app.get('/api/descriptions', requireAuth, async (req, res) => {
+  try {
+    const logs = await Description.find().sort({ createdAt: -1 });
+    res.status(200).json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/descriptions/search', requireAuth, async (req, res) => {
@@ -117,7 +136,6 @@ app.get('/api/descriptions/:id', requireAuth, async (req, res) => {
     res.status(500).json({ error: "Invalid ID format." });
   }
 });
-
 
 app.post('/api/descriptions', requireAuth, async (req, res) => {
   try {
