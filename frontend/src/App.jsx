@@ -24,8 +24,11 @@ export default function App() {
   const [outputCopy, setOutputCopy] = useState('');
 
   const [itemsList, setItemsList] = useState([]);
-  const API_BASE_URL = 'http://127.0.0.1:5000/api/descriptions';
-  const AUTH_BASE_URL = 'http://localhost:5000/api/auth';
+  
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api/descriptions` 
+  : 'http://localhost:5000/api/descriptions';
+const AUTH_BASE_URL = 'http://localhost:5000/api/auth';
   
   const [viewingItem, setViewingItem] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
