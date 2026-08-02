@@ -167,6 +167,16 @@ app.post('/api/descriptions', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.use(cors({
+  origin: [
+    'https://descripto-cdz7cp7ux-jyothika-adabala.vercel.app',
+    'https://descripto-ai-virid.vercel.app',
+    'http://localhost:5173'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.put('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
