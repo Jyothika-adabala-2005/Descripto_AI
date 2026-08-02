@@ -549,7 +549,7 @@ const AUTH_BASE_URL = `${BASE_URL}/api/auth`;
                 Sign In
               </button>
               <button 
-                onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'} 
+                onClick={() => window.location.href = `${AUTH_BASE_URL}/google`} 
                 className="w-full mt-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-2 rounded-xl text-sm transition tracking-wide cursor-pointer flex items-center justify-center gap-2 shadow-sm"
               >
                 🌐 Sign in with Google
