@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import Navbar from './components/navbar';
-import Hero from './components/hero';
-import Footer from './components/footer';
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
+import Footer from './components/Footer';
+
 import { Button, Input, Modal, Toast, Loader } from './components/ui';
 
 export default function App() {
