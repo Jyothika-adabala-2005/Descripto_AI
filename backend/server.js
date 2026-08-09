@@ -16,8 +16,20 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { GoogleGenAI } from '@google/genai';
 
 const app = express();
+
+// 1. Configure CORS before route definitions
+app.use(cors({
+  origin: [
+    'https://descripto-cdz7cp7ux-jyothika-adabala.vercel.app',
+    'https://descripto-ai-virid.vercel.app',
+    'http://localhost:5173'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(passport.initialize());
-app.use(cors());
 app.use(express.json());
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -54,7 +66,7 @@ const requireAuth = (req, res, next) => {
   }
 };
 
-// Passport Strategy Setup (Cleaned & Single Instance)
+// Passport Strategy Setup
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'DUMMY_CLIENT_ID',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'DUMMY_CLIENT_SECRET',
@@ -66,7 +78,6 @@ passport.use(new GoogleStrategy({
       let user = await User.findOne({ email });
       
       if (!user) {
-        // Hash dummy password so Mongoose Schema validation passes cleanly
         const hashedPassword = await bcrypt.hash('OAUTH_EXTERNAL_ACCOUNT_VALIDATION_STRING', 10);
         user = new User({ email, password: hashedPassword });
         await user.save();
@@ -103,19 +114,22 @@ app.get('/api/auth/google/callback', (req, res, next) => {
   })(req, res, next);
 });
 
+// 2. User-isolated GET endpoint
 app.get('/api/descriptions', requireAuth, async (req, res) => {
   try {
-    const logs = await Description.find().sort({ createdAt: -1 });
+    const logs = await Description.find({ userId: req.user.userId }).sort({ createdAt: -1 });
     res.status(200).json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// 3. User-isolated Search endpoint
 app.get('/api/descriptions/search', requireAuth, async (req, res) => {
   try {
     const query = req.query.q ? req.query.q.toLowerCase() : '';
     const filtered = await Description.find({
+      userId: req.user.userId,
       $or: [
         { prodName: { $regex: query, $options: 'i' } },
         { features: { $regex: query, $options: 'i' } }
@@ -127,9 +141,10 @@ app.get('/api/descriptions/search', requireAuth, async (req, res) => {
   }
 });
 
+// 4. User-isolated Single Record endpoint
 app.get('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
-    const log = await Description.findById(req.params.id);
+    const log = await Description.findOne({ _id: req.params.id, userId: req.user.userId });
     if (!log) return res.status(404).json({ error: "Record not found." });
     res.status(200).json(log);
   } catch (err) {
@@ -137,6 +152,7 @@ app.get('/api/descriptions/:id', requireAuth, async (req, res) => {
   }
 });
 
+// 5. User-isolated POST endpoint (Attach req.user.userId on creation)
 app.post('/api/descriptions', requireAuth, async (req, res) => {
   try {
     const { prodName, ingredients, weight, features, tone } = req.body;
@@ -159,7 +175,14 @@ app.post('/api/descriptions', requireAuth, async (req, res) => {
 
     const outputCopy = response.output_text; 
 
-    const newLog = new Description({ prodName, ingredients, weight, features, outputCopy });
+    const newLog = new Description({
+      userId: req.user.userId,
+      prodName, 
+      ingredients, 
+      weight, 
+      features, 
+      outputCopy 
+    });
     await newLog.save();
     res.status(201).json(newLog);
   } catch (err) {
@@ -167,36 +190,28 @@ app.post('/api/descriptions', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-app.use(cors({
-  origin: [
-    'https://descripto-cdz7cp7ux-jyothika-adabala.vercel.app',
-    'https://descripto-ai-virid.vercel.app',
-    'http://localhost:5173'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
 
+// 6. User-isolated PUT endpoint
 app.put('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
     const { outputCopy } = req.body;
-    const updatedRecord = await Description.findByIdAndUpdate(
-      req.params.id,
+    const updatedRecord = await Description.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.userId },
       { outputCopy },
       { new: true }
     );
-    if (!updatedRecord) return res.status(404).json({ error: "Record not found." });
+    if (!updatedRecord) return res.status(404).json({ error: "Record not found or unauthorized." });
     res.json(updatedRecord);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// 7. User-isolated DELETE endpoint
 app.delete('/api/descriptions/:id', requireAuth, async (req, res) => {
   try {
-    const deletedLog = await Description.findByIdAndDelete(req.params.id);
-    if (!deletedLog) return res.status(404).json({ error: "Record not found." });
+    const deletedLog = await Description.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+    if (!deletedLog) return res.status(404).json({ error: "Record not found or unauthorized." });
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: err.message });
