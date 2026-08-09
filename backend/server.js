@@ -167,7 +167,7 @@ app.post('/api/descriptions', requireAuth, async (req, res) => {
       - Unique Features: ${features || 'N/A'}
       
       CRUCIAL LENGTH & FORMATTING INSTRUCTIONS:
-      1. Keep the output SHORT, punchy, and under 80-100 words total.
+      1. Keep the output short, punchy, and under 120-150 words total.
       2. Tone: Strictly align with a "${tone || 'Professional'}" marketing tone alignment.
       3. Structure: Open with a 1-2 sentence snappy hook paragraph, followed by 2-3 short bullet points highlighting key features or materials value.
       4. Avoid filler text, long intro phrases, or fluffy descriptions.`,

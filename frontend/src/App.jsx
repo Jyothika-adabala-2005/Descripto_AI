@@ -39,19 +39,28 @@ const AUTH_BASE_URL = `${BASE_URL}/api/auth`;
   const userName = authEmail ? authEmail.split('@')[0] : (localStorage.getItem('userEmail') ? localStorage.getItem('userEmail').split('@')[0] : 'User');
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('token');
+  const urlParams = new URLSearchParams(window.location.search);
+  const tokenFromUrl = urlParams.get('token');
 
-    if (tokenFromUrl) {
-      localStorage.setItem('token', tokenFromUrl);
-      setUserToken(tokenFromUrl);
-      setPage('dashboard');
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setToastMessage("Signed in seamlessly via Google!");
-      setToastVisible(true);
-      setTimeout(() => setToastVisible(false), 3000);
-    }
-  }, []);
+  if (tokenFromUrl) {
+    localStorage.setItem('token', tokenFromUrl);
+    setUserToken(tokenFromUrl);
+    
+    // Reset form fields on new Google OAuth login
+    setProdName('');
+    setIngredients('');
+    setWeight('');
+    setFeatures('');
+    setTone('Professional');
+    setOutputCopy('');
+
+    setPage('dashboard');
+    window.history.replaceState({}, document.title, window.location.pathname);
+    setToastMessage("Signed in seamlessly via Google!");
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+  }
+}, []);
 
   const fetchAllDescriptions = async () => {
     if (!userToken) return;
@@ -185,18 +194,26 @@ const AUTH_BASE_URL = `${BASE_URL}/api/auth`;
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userEmail');
-    setUserToken('');
-    setAuthEmail('');
-    setItemsList([]);
-    setPage('home');
-    setToastMessage("Logged out successfully.");
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 3000);
-  };
-
+const handleLogout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('userEmail');
+  setUserToken('');
+  setAuthEmail('');
+  setItemsList([]);
+  
+  // Clear form & generated output state on logout
+  setProdName('');
+  setIngredients('');
+  setWeight('');
+  setFeatures('');
+  setTone('Professional');
+  setOutputCopy('');
+  
+  setPage('home');
+  setToastMessage("Logged out successfully.");
+  setToastVisible(true);
+  setTimeout(() => setToastVisible(false), 3000);
+};
   const handleGenerate = async () => {
     if (!userToken) {
       setToastMessage("Access Denied: Please login to generate descriptions!");
