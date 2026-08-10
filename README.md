@@ -2,6 +2,14 @@
 
 An automated marketing copy assistant optimized for HimShakti e-commerce product listings.
 
+## ✨ Features
+
+* **AI Generation:** Instant product listing creation powered by Google's Gemini Flash model.
+* **Authentication:** Secure user sign-up and sign-in using JSON Web Tokens (JWT) and Google OAuth.
+* **Saved Listings (CRUD):** Save generated output to MongoDB Atlas, view saved lists, and delete old descriptions.
+* **One-Click Copy:** Fast utility to copy generated copy directly to the clipboard.
+* **Responsive UI:** Modern dashboard styled with Tailwind CSS.
+
 
 ## 🛠️ Tech Stack Summary
 
@@ -51,16 +59,7 @@ createdAt / updatedAt (Date): Automatic Mongoose timestamps
 * **Live Frontend App:** [https://descripto-ai-virid.vercel.app](https://descripto-ai-virid.vercel.app)
 * **Live Backend API:** [https://descripto-ai-ue4o.onrender.com](https://descripto-ai-ue4o.onrender.com)
 
-
-## ✨ Features
-
-* **AI Generation:** Instant product listing creation powered by Google's Gemini Flash model.
-* **Authentication:** Secure user sign-up and sign-in using JSON Web Tokens (JWT) and Google OAuth.
-* **Saved Listings (CRUD):** Save generated output to MongoDB Atlas, view saved lists, and delete old descriptions.
-* **One-Click Copy:** Fast utility to copy generated copy directly to the clipboard.
-* **Responsive UI:** Modern dashboard styled with Tailwind CSS.
-
-
+   
 ⚠️ Known Limitations on Free Tier
 
 Render Cold Start: The backend is hosted on Render's free tier, which spins down after 15 minutes of inactivity. The first API request after an idle period may take 30–60 seconds to wake up the instance. Subsequent requests will operate at standard speeds.
